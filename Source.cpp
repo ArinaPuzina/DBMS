@@ -3,6 +3,8 @@
 #include "json.hpp"
 #include <map>
 #include <vector>
+
+#include <typeinfo>
 using json = nlohmann::json;
 using namespace std;
 
@@ -24,6 +26,7 @@ Schema readSchemaFromFile(const string& filePath) {
 
     Schema schema;
     schema.name = j["name"];
+    cout << typeid(j["structure"]).name();
     schema.structure = j["structure"].get<map<string, vector<string>>>();
     schema.tuplesLimit = j["tuples_limit"];
     return schema;
