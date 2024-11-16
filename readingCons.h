@@ -1,12 +1,14 @@
 #ifndef READINGCONS_H_INCLUDED
 #define READINGCONS_H_INCLUDED
 #include <regex>
-#include <vector>
+#include "vector.h"
 #include <sstream>
 #include "Schema.h"
 #include "func.h"
-
+#include "locking.h"
+#include <string>
 using namespace std;
+
 
 /// Регулярные выражения для SQL команд
 regex insertRegex("^INSERT\\s+INTO\\s+(\\w+)\\s+VALUES\\s+\\((.+)\\)\\s*;?$", regex_constants::icase);
@@ -18,7 +20,9 @@ regex selectWhereRegex("^SELECT\\s+([\\w\\d\\.,\\s]+)\\s+FROM\\s+([\\w\\d,\\s]+)
 enum CommandType {
     INSERT,
     SELECT,
+    SELECTWHERE,
     DELETE,
+    DELETEWHERE,
     UNKNOWN
 };
 
@@ -28,11 +32,11 @@ CommandType identifyCommand(const string& command, smatch& match) {
     } else if (regex_match(command, match, selectRegex)) {
         return SELECT;
     } else if (regex_match(command, match, selectWhereRegex)) {
-        return SELECT;
+        return SELECTWHERE;
     } else if (regex_match(command, match, deleteRegex)) {
         return DELETE;
     } else if (regex_match(command, match, deleteWhereRegex)) {
-        return DELETE;
+        return DELETEWHERE;
     }
     return UNKNOWN;
 }
@@ -60,27 +64,33 @@ void menu(const string& command) {
             cout<<values<<endl;
             break;
         }
-        case SELECT: {
-            string columns = match[1];
-            string tables = match[2];
-            cout << "SELECT columns: " << columns << endl;
-            cout << "FROM tables: " << tables << endl;
 
-            // Если нужна дополнительная проверка для SELECT с WHERE, добавьте здесь.
-            break;
-        }
         case DELETE: {
-            string tableName = match[1];
-//            if (match.size() > 2) {
-//                string condition = match[2];
-//                cout << "DELETE FROM table: " << tableName << endl;
-//                cout << "WHERE condition: " << condition << endl;}
-             if(match.size()<=2) {
-                DeleteFrom(tableName);
-                cout << "DELETE FROM table: " << tableName << endl;
-            }
+        string tablesStr = match[1].str();
+        Vector<string> tables = split(tablesStr, ",");
+        fDelete(tables, "");
+        //unlockTables(storage.schema.name, tables);
+        }
+        case DELETEWHERE: {
+            //делим по OR
+            string tableName=match[1].str();
+            string conditions=match[2].str();
+            Vector<string> ConditionsOR= split(conditions,"OR");
+
+            DeleteWhere(tableName, ConditionsOR);
             break;
         }
+        case SELECT:{
+        string columnsStr = match[1].str();
+        string tablesStr = match[2].str();
+        Vector<string> tables = split(tablesStr, ",");
+        Vector<string> columns = split(columnsStr, ",");
+
+        select(columns, tables, "");
+            break;
+        }
+
+
         case UNKNOWN:
         default:
             cout << "Unknown command." << endl;

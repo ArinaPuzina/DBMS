@@ -1,5 +1,5 @@
 {
-	"name": "scheme 1",
+	"name": "scheme1",
 	"tuples_limit": 10,
 	"structure": {
 		"table1": ["column1", "column2", "column3"],

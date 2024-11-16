@@ -6,11 +6,13 @@
 #include "readingCons.h"
 #include "Schema.h"
 #include "func.h"
+#include <locale>
+
 using json = nlohmann::json;
 namespace fs = std::filesystem;
+using namespace std;
 Schema schema;
 
-// Функция для чтения JSON файла
 Schema readSchemaFromFile(const string& filePath) {
     ifstream inputFile(filePath);
     if (!inputFile.is_open()) {
@@ -34,25 +36,24 @@ Schema readSchemaFromFile(const string& filePath) {
     return schema;
 }
 
-
 void createSchemaDirectories() {
-    // Создаем директорию с именем схемы
     fs::create_directory(schema.name);
-     Vector<string> tables = schema.structure.keys();//вектор с именами таблиц
-        for (int i = 0; i < tables.size(); i++) {
-            string tableName = tables.get(i);
-            Vector<string> cols = schema.structure.get(tableName);
-            string tablePath = schema.name + "/" + tableName; // Путь до таблицы
-            if (!fs::exists(tablePath)) {
-                fs::create_directory(tablePath);
-                       } else {
-                cerr << "Table directory " << tablePath << " already exists" << endl;
-            }
-            // Создаем файл 1.csv в каждой директории таблицы
-            string csvFilePath = tablePath + "/1.csv";
-            std::ofstream csvFile(csvFilePath);
+    Vector<string> tables = schema.structure.keys();
+    for (int i = 0; i < tables.size(); i++) {
+        string tableName = tables.get(i);
+        Vector<string> cols = schema.structure.get(tableName);
+        string tablePath = schema.name + "/" + tableName;
+        if (!fs::exists(tablePath)) {
+            fs::create_directory(tablePath);
+        } else {
+            cerr << "Table directory " << tablePath << " already exists" << endl;
+        }
+
+        // Создание файла 1.csv, если его ещё нет
+        string csvFilePath = tablePath + "/1.csv";
+        if (!fs::exists(csvFilePath)) {
+            ofstream csvFile(csvFilePath);
             if (csvFile.is_open()) {
-                // Добавляем заголовки колонок в CSV файл
                 csvFile << tableName << "_pk,";
                 for (size_t j = 0; j < cols.size(); j++) {
                     csvFile << cols.data[j] << ",";
@@ -60,47 +61,50 @@ void createSchemaDirectories() {
                 csvFile << endl;
                 csvFile.close();
             }
+        }
 
-            // Создаем файл для первичного ключа
-            string pkFilePath = tablePath + "/" + tableName + "_pk_sequence";
-            std::ofstream pkFile(pkFilePath);
+        // Создание файла _pk_sequence, если его ещё нет
+        string pkFilePath = tablePath + "/" + tableName + "_pk_sequence";
+        if (!fs::exists(pkFilePath)) {
+            ofstream pkFile(pkFilePath);
             if (pkFile.is_open()) {
-                pkFile << "1"; // Начальное значение первичного ключа
+                pkFile << "1"; // Начальная последовательность
                 pkFile.close();
             }
+        }
 
-            // Создаем файл блокировки
-            string lockFilePath = tablePath + "/" + tableName + "_lock";
-            std::ofstream lockFile(lockFilePath);
+        // Создание файла _lock, если его ещё нет
+        string lockFilePath = tablePath + "/" + tableName + "_lock";
+        if (!fs::exists(lockFilePath)) {
+            ofstream lockFile(lockFilePath);
             lockFile.close();
         }
     }
-
+}
 
 int main() {
+    setlocale(LC_ALL, "Russian");
     try {
-    cout << "Reading schema from JSON file..." << endl;
-    schema = readSchemaFromFile("scheme.json");
 
-    cout<<"Creating directories and files..."<<endl;
+        cout << "Reading schema from JSON file..." << endl;
+        schema = readSchemaFromFile("scheme.json");
+        cout << "Creating directories and files..." << endl;
         createSchemaDirectories();
 
-    cout << "directories and files created successfully." << endl;
+        cout << "directories and files created successfully." << endl;
     }
     catch (const exception& e) {
         cerr << "error: " << e.what() << endl;
     }
-    cout<<"DBMS is ready for using "<<endl;
-    while(true){
+    cout << "DBMS is ready for using " << endl;
+    while (true) {
         cout << "Enter SQL request: ";
         string command;
         getline(cin, command);
 
-    // Разбор команды
-    menu(command);
-}
 
-
+        menu(command);
+    }
 
     return 0;
 }

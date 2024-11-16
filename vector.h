@@ -2,19 +2,18 @@
 #define VECTOR_H_INCLUDED
 #include <string>
 #include <iostream>
+#define LOADFACTOR 0.5
 using namespace std;
 template <typename T>
 struct Vector {
     T* data;
     int len;
     int cap;
-    float loadFactor;
 
     Vector(int initCap = 16, int initLen = 0) {
         cap = initCap;
         len = 0;
         data = new T[cap];
-        loadFactor = 0.5;
     }
 
     int size() const {
@@ -33,7 +32,7 @@ struct Vector {
     }
 
     void pushBack(T value) {
-        if (static_cast<float>(len) / cap >= loadFactor) {
+        if (static_cast<float>(len) / cap >= LOADFACTOR) {
             extend();
         }
         data[len] = value;
@@ -41,7 +40,7 @@ struct Vector {
     }
 
     void insert(int index, T value) {
-        if (static_cast<float>(len) / cap >= loadFactor) {
+        if (static_cast<float>(len) / cap >= LOADFACTOR) {
             extend();
         }
         for (int i = len; i > index; i--) {
@@ -104,6 +103,27 @@ struct Vector {
 
         return result;
     }
+    //для for_each
+    T* begin() {
+        return data;
+    }
+
+
+    T* end() {
+        return data + len;
+    }
+        Vector<T> copy() const {
+        Vector<T> newVector(cap); // Создаем новый вектор с такой же емкостью
+        newVector.len = len;      // Копируем длину
+
+        // Копируем элементы из текущего вектора в новый
+        for (int i = 0; i < len; i++) {
+            newVector.data[i] = data[i];
+        }
+
+        return newVector;
+    }
+
 };
 
 template <typename T>
@@ -118,5 +138,25 @@ ostream& operator<<(ostream& os, const Vector<T>& vec) {
     }
     return os;
 }
+string trim(const string& str, char ch = ' ') {
+    size_t first = str.find_first_not_of(ch);
+    if (first == std::string::npos) return "";
+    size_t last = str.find_last_not_of(ch);
+    return str.substr(first, last - first + 1);
+}
 
+Vector<string> split(string str, string delimiter) {
+    Vector<string> values;
+    size_t pos = 0;
+    while ((pos = str.find(delimiter)) != string::npos) {
+        string value = str.substr(0, pos);
+        str = trim(trim(str), '\t');
+        values.pushBack(value);
+        str.erase(0, pos + delimiter.length());
+    }
+    str = trim(trim(str), '\t');
+    values.pushBack(str);  // Последнее значение
+
+    return values;
+}
 #endif // VECTOR_H_INCLUDED
