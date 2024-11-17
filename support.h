@@ -120,4 +120,53 @@ void writeDataToCSV(const string& pathToTable, const string& header, const Vecto
     }
     outFile.close();
 }
+// Функция для чтения CSV-файла в двумерный вектор строк
+Vector<Vector<string>> readCSV(string filename) {
+    Vector<Vector<string>> data;
+    ifstream file(filename);
+
+    if (!file.is_open()) {
+        cerr << "Error: Could not open file " << filename << endl;
+        return data;
+    }
+
+    string line;
+    while (getline(file, line)) {
+        Vector<string> row;
+        stringstream lineStream(line);
+        string cell;
+
+        while (getline(lineStream, cell, ',')) {
+            row.pushBack(cell);
+        }
+
+        data.pushBack(row);
+    }
+
+    file.close();
+    return data;
+}
+
+void writeCSV(const string& filename, const Vector<Vector<string>>& data) {
+    ofstream file(filename);
+
+    if (!file.is_open()) {
+        cerr << "Error: Could not open file " << filename << endl;
+        return;
+    }
+
+    for (int i = 0; i < data.size(); i++) {
+        Vector<string> row = data.get(i);
+        for (size_t i = 0; i < row.size(); ++i) {
+            file << row.get(i);
+            // Добавляем запятую, кроме последнего элемента в строке
+            if (i < row.size() - 1) {
+                file << ",";
+            }
+        }
+        file << "\n";
+    }
+
+    file.close();
+}
 #endif // SUPPORT_H_INCLUDED

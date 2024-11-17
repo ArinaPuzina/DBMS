@@ -85,8 +85,17 @@ void menu(const string& command) {
         string tablesStr = match[2].str();
         Vector<string> tables = split(tablesStr, ",");
         Vector<string> columns = split(columnsStr, ",");
-
-        select(columns, tables, "");
+        select(columns, tables);
+            break;
+        }
+        case SELECTWHERE: {
+        string columnsStr = match[1].str();
+        string tablesStr = match[2].str();
+        Vector<string> tables = split(tablesStr, ",");
+        Vector<string> columns = split(columnsStr, ",");
+        string conditions = match[3].str();
+        Vector<string> ConditionsOR= split(conditions,"OR");
+        selectWhere(columns, tables, ConditionsOR);
             break;
         }
 

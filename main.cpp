@@ -87,8 +87,7 @@ int main() {
     try {
 
         cout << "Reading schema from JSON file..." << endl;
-        schema = readSchemaFromFile("scheme.json");
-        cout << "Creating directories and files..." << endl;
+        schema = readSchemaFromFile("scheme.json");        cout << "Creating directories and files..." << endl;
         createSchemaDirectories();
 
         cout << "directories and files created successfully." << endl;
