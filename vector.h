@@ -112,7 +112,7 @@ struct Vector {
     T* end() {
         return data + len;
     }
-Vector<T> copy() const {
+    Vector<T> copy() const {
         Vector<T> newVector(cap); // Создаем новый вектор с такой же емкостью
         newVector.len = len;      // Копируем длину
 

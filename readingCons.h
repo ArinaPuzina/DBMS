@@ -46,10 +46,10 @@ void menu(const string& command) {
     CommandType commandType = identifyCommand(command, match);
 
     switch (commandType) {
+
         case INSERT: {
             string tableName = match[1];
             string valuesStr = match[2];
-
             Vector<string> values;
             regex valuePattern(R"('([^']+)')");
             auto values_begin = sregex_iterator(valuesStr.begin(), valuesStr.end(), valuePattern);
@@ -58,50 +58,97 @@ void menu(const string& command) {
             for (auto it = values_begin; it != values_end; ++it) {
                 values.pushBack(it->str(1));
             }
+            Vector<string> cols = schema.structure.get(tableName);
+
+            if (values.size() != cols.size()) {
+                cerr << "Incorrect count of columns" << endl;
+                return;
+            }
+            // Вставляем данные в таблицу
+            string lockPath = schema.name + "/" + tableName + "/" + tableName + "_lock";
+            try {
+                lock(lockPath);
+            } catch (runtime_error& e) {
+                cerr << "Table " + tableName + " blocked" << endl;
+            return;
+            }
             Insert(tableName, values);
             cout << "the insertion occurred in: " << tableName << endl;
             cout << "it was filled with values: ";
             cout<<values<<endl;
+            unlock(lockPath);
             break;
         }
 
         case DELETE: {
-        string tablesStr = match[1].str();
-        Vector<string> tables = split(tablesStr, ",");
-        fDelete(tables, "");
-        //unlockTables(storage.schema.name, tables);
+            string tablesStr = match[1].str();
+            Vector<string> tables = split(tablesStr, ",");
+            try {
+                lockTables(schema.name, tables);
+            } catch (runtime_error& e) {
+                cerr << e.what() << endl;
+                return;
+            }
+
+            fDelete(tables, "");
+            unlockTables(schema.name, tables);
+            break;
         }
         case DELETEWHERE: {
             //делим по OR
             string tableName=match[1].str();
+            Vector<string> tables = split(tableName, ",");
             string conditions=match[2].str();
             Vector<string> ConditionsOR= split(conditions,"OR");
-
+        try {
+            lockTables(schema.name, tables);
+        } catch (runtime_error& e) {
+            cerr << e.what() << endl;
+            return;
+        }
             DeleteWhere(tableName, ConditionsOR);
+            unlockTables(schema.name, tables);
             break;
         }
-        case SELECT:{
-        string columnsStr = match[1].str();
-        string tablesStr = match[2].str();
-        Vector<string> tables = split(tablesStr, ",");
-        Vector<string> columns = split(columnsStr, ",");
-        select(columns, tables);
-            break;
+        case SELECT: {
+            string columnsStr = match[1].str();
+            string tablesStr = match[2].str();
+            Vector<string> tables = split(tablesStr, ",");
+            Vector<string> columns = split(columnsStr, ",");
+
+        try {
+            lockTables(schema.name, tables); // Блокируем таблицы
+        } catch (runtime_error& e) {
+            cerr << e.what() << endl;
+            return;
         }
+
+            select(columns, tables);
+            unlockTables(schema.name, tables); // Разблокируем таблицы
+        break;
+    }
         case SELECTWHERE: {
-        string columnsStr = match[1].str();
-        string tablesStr = match[2].str();
-        Vector<string> tables = split(tablesStr, ",");
-        Vector<string> columns = split(columnsStr, ",");
-        string conditions = match[3].str();
-        Vector<string> ConditionsOR= split(conditions,"OR");
-        selectWhere(columns, tables, ConditionsOR);
+            string columnsStr = match[1].str();
+            string tablesStr = match[2].str();
+            Vector<string> tables = split(tablesStr, ",");
+            Vector<string> columns = split(columnsStr, ",");
+            string conditions = match[3].str();
+            Vector<string> ConditionsOR = split(conditions, "OR");
+
+            try {
+                lockTables(schema.name, tables); // Блокируем таблицы
+            } catch (runtime_error& e) {
+                cerr << e.what() << endl;
+                return;
+            }
+
+            selectWhere(columns, tables, ConditionsOR);
+
+            unlockTables(schema.name, tables); // Разблокируем таблицы
             break;
-        }
-
-
+}
         case UNKNOWN:
-        default:
+            default:
             cout << "Unknown command." << endl;
             break;
     }
