@@ -1,8 +1,8 @@
 {
-	"name": "scheme1",
+	"name": "programming",
 	"tuples_limit": 10,
 	"structure": {
-		"table1": ["column1", "column2", "column3"],
-		"table2": ["column1", "column2"]
+		"table1": ["language", "salary","level"],
+		"table2": ["name", "experience"]
 	}
 }

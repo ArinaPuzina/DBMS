@@ -83,10 +83,10 @@ struct Vector {
     int find(const T& value) const {
         for (int i = 0; i < len; i++) {
             if (data[i] == value) {
-                return i; // Возвращаем индекс, если значение найдено
+                return i; //dозвращаем индекс, если значение найдено
             }
         }
-        return -1; // Возвращаем -1, если значение не найдено
+        return -1;
     }
 
     string join(char delimiter = ',') {
@@ -113,10 +113,9 @@ struct Vector {
         return data + len;
     }
     Vector<T> copy() const {
-        Vector<T> newVector(cap); // Создаем новый вектор с такой же емкостью
-        newVector.len = len;      // Копируем длину
+        Vector<T> newVector(cap);
+        newVector.len = len;
 
-        // Копируем элементы из текущего вектора в новый
         for (int i = 0; i < len; i++) {
             newVector.data[i] = data[i];
         }

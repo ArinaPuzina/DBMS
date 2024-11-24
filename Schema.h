@@ -5,11 +5,11 @@
 #include <string>
 #include <iostream>
 using namespace std;
-// Структура для схемы
+
 struct Schema {
-    string name; // Название схемы
-    Map<Vector<string>> structure; // Структура таблиц (имя таблицы и столбцы)
-    int tuplesLimit; // Лимит на количество кортежей в одном файле
+    string name;
+    Map<Vector<string>> structure;
+    int tuplesLimit;
 };
 extern Schema schema;
 

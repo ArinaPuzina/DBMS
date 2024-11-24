@@ -26,7 +26,7 @@ void writeList(string path, string tableName, Vector<string> cols) {
     file << endl;
     file.close();
     }
-
+//пути к файлам csv
 Vector<string> getCSVFromDir(string dirPath) {
     Vector<string> csvFiles;
     smatch match;
@@ -54,14 +54,8 @@ Vector<string> listCSVFiles(const string& filepath) {
     }
     return csvFiles;
 }
-string findColumnIndex(const string& tabCol) {
-    size_t pos = tabCol.find("column");  // Находим позицию слова "column"
-    if (pos != string::npos) {
-        return tabCol.substr(pos + 6);  // Возвращаем подстроку после "column"
-    }
-    return "-1";  // Если "column" не найдено, возвращаем пустую строку
-}
 
+//нахождение заголовка
 string readCSVHeader(const string& pathToTable) {
     Vector<string> csvFiles = listCSVFiles(pathToTable);
     if (csvFiles.size() == 0) {
@@ -74,9 +68,27 @@ string readCSVHeader(const string& pathToTable) {
     }
 
     string header;
-    getline(file, header);  // Читаем первую строку как заголовок
+    getline(file, header);
     file.close();
     return header;
+}
+//находит индекс колонки по имени
+int findColumnIndex(const string& tabCol, const string& pathToTable) {
+    size_t dotPos = tabCol.find('.');
+    if (dotPos == string::npos) {
+        throw invalid_argument("Некорректный формат tabCol, требуется table.column: " + tabCol);
+    }
+    string columnName = tabCol.substr(dotPos + 1);
+
+    string header = readCSVHeader(pathToTable);
+    Vector<string> columns = split(header, ",");
+    for (int i = 0; i < columns.size(); ++i) {
+        if (columns.get(i) == columnName) {
+            return i;
+        }
+    }
+
+    throw runtime_error("Колонка '" + columnName + "' не найдена в файле: " + pathToTable);
 }
 Vector<string> readAllDataRowsFromCSV(const string& pathToTable, string& header) {
     Vector<string> dataRows;
@@ -120,7 +132,7 @@ void writeDataToCSV(const string& pathToTable, const string& header, const Vecto
     }
     outFile.close();
 }
-// Функция для чтения CSV-файла в двумерный вектор строк
+//Функция для чтения CSV-файла в двумерный вектор строк
 Vector<Vector<string>> readCSV(string filename) {
     Vector<Vector<string>> data;
     ifstream file(filename);
@@ -146,7 +158,7 @@ Vector<Vector<string>> readCSV(string filename) {
     file.close();
     return data;
 }
-
+//заполнить csv
 void writeCSV(const string& filename, const Vector<Vector<string>>& data) {
     ofstream file(filename);
 
@@ -159,7 +171,6 @@ void writeCSV(const string& filename, const Vector<Vector<string>>& data) {
         Vector<string> row = data.get(i);
         for (size_t i = 0; i < row.size(); ++i) {
             file << row.get(i);
-            // Добавляем запятую, кроме последнего элемента в строке
             if (i < row.size() - 1) {
                 file << ",";
             }

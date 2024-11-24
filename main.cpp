@@ -49,7 +49,7 @@ void createSchemaDirectories() {
             cerr << "Table directory " << tablePath << " already exists" << endl;
         }
 
-        // Создание файла 1.csv, если его ещё нет
+        //cоздание файла 1.csv, если его нет
         string csvFilePath = tablePath + "/1.csv";
         if (!fs::exists(csvFilePath)) {
             ofstream csvFile(csvFilePath);
@@ -63,17 +63,17 @@ void createSchemaDirectories() {
             }
         }
 
-        // Создание файла _pk_sequence, если его ещё нет
+
         string pkFilePath = tablePath + "/" + tableName + "_pk_sequence";
         if (!fs::exists(pkFilePath)) {
             ofstream pkFile(pkFilePath);
             if (pkFile.is_open()) {
-                pkFile << "1"; // Начальная последовательность
+                pkFile << "0"; // Начальная последовательность
                 pkFile.close();
             }
         }
 
-        // Создание файла _lock, если его ещё нет
+
         string lockFilePath = tablePath + "/" + tableName + "_lock";
         if (!fs::exists(lockFilePath)) {
             ofstream lockFile(lockFilePath);
