@@ -3,29 +3,31 @@
 #include <filesystem>
 #include "hashTab.h"
 #include "json.hpp"
-#include "readingCons.h"
-#include "Schema.h"
-#include "func.h"
 #include <locale>
 #include <unistd.h>
-
-#include <stdlib.h>
 #include <string>
 #include <arpa/inet.h>
 #include <netdb.h>
 #include <netinet/in.h>
 #include <thread>
-#include <mutex>
-#define ERROR_S "SERVER ERROR"
-#define PORT 7437
+#include "Schema.h"
+#include "readingCons.h"
 
 
+#define BUFLEN 1024
+
+using namespace std;
+
+const int PORT = 7433;
 
 using json = nlohmann::json;
 namespace fs = std::filesystem;
-using namespace std;
+
+// Глобальные переменные
 Schema schema;
 
+
+// Чтение схемы из файла
 Schema readSchemaFromFile(const string& filePath) {
     ifstream inputFile(filePath);
     if (!inputFile.is_open()) {
@@ -49,6 +51,7 @@ Schema readSchemaFromFile(const string& filePath) {
     return schema;
 }
 
+// Создание директорий и файлов для таблиц
 void createSchemaDirectories() {
     fs::create_directory(schema.name);
     Vector<string> tables = schema.structure.keys();
@@ -62,7 +65,6 @@ void createSchemaDirectories() {
             cerr << "Table directory " << tablePath << " already exists" << endl;
         }
 
-        //c������� ����� 1.csv, ���� ��� ���
         string csvFilePath = tablePath + "/1.csv";
         if (!fs::exists(csvFilePath)) {
             ofstream csvFile(csvFilePath);
@@ -76,16 +78,14 @@ void createSchemaDirectories() {
             }
         }
 
-
         string pkFilePath = tablePath + "/" + tableName + "_pk_sequence";
         if (!fs::exists(pkFilePath)) {
             ofstream pkFile(pkFilePath);
             if (pkFile.is_open()) {
-                pkFile << "0"; // ��������� ������������������
+                pkFile << "0"; // Начальное значение первичного ключа
                 pkFile.close();
             }
         }
-
 
         string lockFilePath = tablePath + "/" + tableName + "_lock";
         if (!fs::exists(lockFilePath)) {
@@ -94,64 +94,86 @@ void createSchemaDirectories() {
         }
     }
 }
-// ��������� �������
+
+// Очистка буфера
+void nullBuffer(char* buf, int len) {
+    for (int i = 0; i < len; i++) {
+        buf[i] = 0;
+    }
+}
+
+// Обработка клиента
 void handleClient(int clientSocket) {
-    char buffer[1024] = {0};
+    char buffer[BUFLEN];
+    nullBuffer(buffer, BUFLEN);
 
     while (true) {
-        int valread = read(clientSocket, buffer, sizeof(buffer));
-        if (valread <= 0) break;
-
+        int valread = read(clientSocket, buffer, BUFLEN);
+        if (valread < 0) {
+            cerr << "Error while reading query" << endl;
+            return;
+        }
         string command(buffer);
         command = trim(command, '\n');
 
-        if (command == "exit") break;
-
-        try {
-            menu(command);
-            send(clientSocket, "OK\n", 3, 0);
-        } catch (const exception& e) {
-            send(clientSocket, ERROR_S, strlen(ERROR_S), 0);
+        if (command == "exit") {
+            break;
         }
 
-        memset(buffer, 0, sizeof(buffer));
+        // Используем мьютекс для защиты структуры schema
+        menu(command,clientSocket); 
+        nullBuffer(buffer, BUFLEN);
     }
-    shutdown(clientSocket, SHUT_RDWR);
+
     close(clientSocket);
 }
 
-// ������ �������
+// Запуск сервера
 void startServer() {
-    int server_fd = socket(AF_INET, SOCK_STREAM, 0);
-    if (server_fd < 0) throw runtime_error("Socket creation failed");
+    int server_fd = socket(AF_INET, SOCK_STREAM, 0); // создаём сервер
+    if (server_fd == 0) {
+        cerr << "Server creation error" << endl;
+        return;
+    }
 
-    sockaddr_in address{};
-    address.sin_family = AF_INET;
-    address.sin_addr.s_addr = INADDR_ANY;
-    address.sin_port = htons(PORT);
+    struct sockaddr_in address;
 
-    if (bind(server_fd, (struct sockaddr*)&address, sizeof(address)) < 0)
-        throw runtime_error("Socket bind failed");
+    address.sin_family = AF_INET; // используем ipv4
+    address.sin_addr.s_addr = INADDR_ANY; // любой адрес
+    address.sin_port = htons(PORT); // задаём порт
 
-    if (listen(server_fd, 3) < 0)
-        throw runtime_error("Socket listen failed");
+    // Привязываем сокет к порту
+    if (bind(server_fd, (struct sockaddr*)&address, sizeof(address)) < 0) {
+        cerr << "Socket error" << endl;
+        return;
+    }
+    // Слушаем подключения (до 3 штук)
+    if (listen(server_fd, 3) < 0) {
+        cerr << "Listen error" << endl;
+        return;
+    }
 
     cout << "Server listening on port " << PORT << "..." << endl;
 
+    // Принимаем подключения клиентов
     while (true) {
-        sockaddr_in clientAddress;
-        socklen_t clientAddressLen = sizeof(clientAddress);
-        int clientSocket = accept(server_fd, (sockaddr*)&clientAddress, &clientAddressLen);
-        if (clientSocket < 0) {
-            cerr << "Accept failed" << endl;
-            continue;
+        int newSocket;
+        sockaddr_in clientAddress; // Структура для хранения адреса клиента
+        socklen_t clientAddressLen = sizeof(clientAddress); // Размер структуры адреса клиента
+
+        newSocket = accept(server_fd, (sockaddr*)&clientAddress, &clientAddressLen);
+        if (newSocket < 0) {
+            cerr << "Accept client error" << endl;
+            return;
         }
 
-        thread(handleClient, clientSocket).detach();
+        // Создаем новый поток для обработки каждого подключения
+        thread clientThread(handleClient, newSocket);
+        clientThread.detach(); // Отсоединяем поток для асинхронного выполнения
     }
 }
 
-// �������� �������
+// Основная функция
 int main() {
     try {
         cout << "Reading schema from JSON file..." << endl;
@@ -165,6 +187,5 @@ int main() {
     } catch (const exception& e) {
         cerr << "Critical error: " << e.what() << endl;
     }
-
     return 0;
 }
