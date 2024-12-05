@@ -42,10 +42,10 @@ CommandType identifyCommand(const string& command, smatch& match) {
     return UNKNOWN;
 }
 
-std::mutex menuMutex;  // Мьютекс для защиты функции
+std::mutex menuMutex;  
 
 void menu(const string& command,int clientSocket) {
-    std::lock_guard<std::mutex> guard(menuMutex);  // Защищаем функцию с помощью lock_guard
+    std::lock_guard<std::mutex> guard(menuMutex); 
 
     smatch match;
     CommandType commandType = identifyCommand(command, match);
@@ -151,7 +151,7 @@ void menu(const string& command,int clientSocket) {
                 return;
             }
 
-            selectWhere(columns, tables, ConditionsOR);
+            selectWhere(columns, tables, ConditionsOR, clientSocket);
             unlockTables(schema.name, tables);
             break;
         }

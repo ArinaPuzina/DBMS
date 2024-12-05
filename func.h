@@ -336,17 +336,20 @@ void select(Vector<string> columns, Vector<string> tables, int clientSocket) {
         }
 }
 
-void selectWhere(Vector<string> columns, Vector<string> tables, const Vector<string>& ConditionsOR) {
+void selectWhere(Vector<string> columns, Vector<string> tables, const Vector<string>& ConditionsOR, int clientSocket) {
+     string output;
      // ���������, ��� ������� ���������� � ��� ������������ �������
      for (int i = 0; i < tables.size(); i++) {
           string tableName = tables.get(i);
           if (!schema.structure.contains(tableName)) {
                cerr << "Table '" << tableName << "' does not exist." << endl;
+               output = "Table" + tableName + "does not exist.\n";
+               send(clientSocket, output.c_str(), output.size(), 0);
                return;
           }
      }
 
-     //���������, ��� ��� ������� ���� � ��������
+
      for (int j = 0; j < tables.size(); j++) {
           string tableName = tables.get(j);
           bool colFoundInTables = false;
@@ -354,6 +357,8 @@ void selectWhere(Vector<string> columns, Vector<string> tables, const Vector<str
                Vector<string> parts = split(columns.get(i), ".");
                if (parts.size() != 2) {
                     cerr << "incorrect column " + columns.get(i) << endl;
+                    output = "incorrect column " + columns.get(i)+"\n";
+                    send(clientSocket, output.c_str(), output.size(), 0);
                     return;
                }
                string colTableName = parts.get(0);
@@ -380,6 +385,8 @@ void selectWhere(Vector<string> columns, Vector<string> tables, const Vector<str
                size_t dotPos = fullColumn.find(".");
                if (dotPos == string::npos) {
                     cerr << "Error: Column '" << fullColumn << "' is not in 'table.column' format." << endl;
+                    output = "Error: Column '" + fullColumn +"' is not in 'table.column' format.'"+"\n";
+                    send(clientSocket, output.c_str(), output.size(), 0);
                     return;
                }
 
@@ -388,17 +395,21 @@ void selectWhere(Vector<string> columns, Vector<string> tables, const Vector<str
 
                if (requestedTable != tableName) {
                     cerr << "Error: Column '" << fullColumn << "' does not belong to table '" << tableName << "'." << endl;
+                    output = "Error: Column '" + fullColumn +"' does not belong to table '" +tableName + "'."+"\n";
+                    send(clientSocket, output.c_str(), output.size(), 0);
                     return;
                }
 
                if (availableColumns.find(requestedColumn) == -1) {
+                    output =  "Error: Column '" +requestedColumn + "' does not exist in table '" + tableName + "'."+"\n";
+                    send(clientSocket, output.c_str(), output.size(), 0);
                     cerr << "Error: Column '" << requestedColumn << "' does not exist in table '" << tableName << "'." << endl;
                     return;
                }
 
                columnsToSelect.pushBack(requestedColumn);
           }
-//��������� ������� WHERE
+//working with WHERE
           Vector<string> pages = listCSVFiles(schema.name + "/" + tableName);
           for (int i = 0; i < pages.size(); i++) {
                string pagePath = pages.get(i);
@@ -501,15 +512,20 @@ void selectWhere(Vector<string> columns, Vector<string> tables, const Vector<str
                               break;
                          }
                     }
-
+//send(clientSocket, output.c_str(), output.size(), 0);
                     //���� ������ ������������� �������� OR
                     if (rowMatchesOr) {
+
                          for (int k = 0; k < columnIndexes.size(); k++) {
+                              output +=  elementsOfRows.get(columnIndexes.get(k));
+                    
                               cout << elementsOfRows.get(columnIndexes.get(k));  //������� ������ �������
                               if (k < columnIndexes.size() - 1) {
+                                   output +=  ", ";
                                    cout << ", ";
                               }
                          }
+                         output +=  "\n";
                          cout << endl;
                     }
                }
@@ -528,6 +544,8 @@ void selectWhere(Vector<string> columns, Vector<string> tables, const Vector<str
                     string fullColumn = columns.get(j);
                     size_t dotPos = fullColumn.find(".");
                     if (dotPos == string::npos) {
+                         output =  "The format is not correct\n";
+                         send(clientSocket, output.c_str(), output.size(), 0);
                          cerr << "Error: Column '" << fullColumn << "' is not in 'table.column' format." << endl;
                          return;
                     }
@@ -536,6 +554,8 @@ void selectWhere(Vector<string> columns, Vector<string> tables, const Vector<str
                     string requestedColumn = fullColumn.substr(dotPos + 1);
                     if (requestedTable == tableName) {
                          if (availableColumns.find(requestedColumn) == -1) {
+                         output =  "The format is not correct\n";
+                         send(clientSocket, output.c_str(), output.size(), 0);
                               cerr << "Error: Column '" << requestedColumn << "' does not exist in table '" << tableName << "'." << endl;
                               return;
                          }
@@ -740,12 +760,16 @@ void selectWhere(Vector<string> columns, Vector<string> tables, const Vector<str
                }
 
                for (int j = 0; j < selectedColumns.size(); j++) {
+                    output +=  selectedColumns.get(j);
                     cout << selectedColumns.get(j);
-                    if (j < selectedColumns.size() - 1) cout << ", ";
+                    if (j < selectedColumns.size() - 1) {cout << ", ";
+                    output +=", ";
+                    }
                }
+               output +="\n";
                cout << endl;
           }
-     }
+     }send(clientSocket, output.c_str(), output.size(), 0);
 }
 
 #endif // FUNC_H_INCLUDED

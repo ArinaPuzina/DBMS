@@ -18,16 +18,16 @@
 
 using namespace std;
 
-const int PORT = 7433;
+const int PORT = 7432;
 
 using json = nlohmann::json;
 namespace fs = std::filesystem;
 
-// Глобальные переменные
+
 Schema schema;
 
 
-// Чтение схемы из файла
+
 Schema readSchemaFromFile(const string& filePath) {
     ifstream inputFile(filePath);
     if (!inputFile.is_open()) {
@@ -120,7 +120,7 @@ void handleClient(int clientSocket) {
             break;
         }
 
-        // Используем мьютекс для защиты структуры schema
+        
         menu(command,clientSocket); 
         nullBuffer(buffer, BUFLEN);
     }
@@ -130,7 +130,7 @@ void handleClient(int clientSocket) {
 
 // Запуск сервера
 void startServer() {
-    int server_fd = socket(AF_INET, SOCK_STREAM, 0); // создаём сервер
+    int server_fd = socket(AF_INET, SOCK_STREAM, 0); // создаём сервер SOCK_STREAM=TCP
     if (server_fd == 0) {
         cerr << "Server creation error" << endl;
         return;
@@ -140,14 +140,14 @@ void startServer() {
 
     address.sin_family = AF_INET; // используем ipv4
     address.sin_addr.s_addr = INADDR_ANY; // любой адрес
-    address.sin_port = htons(PORT); // задаём порт
+    address.sin_port = htons(PORT); 
 
     // Привязываем сокет к порту
     if (bind(server_fd, (struct sockaddr*)&address, sizeof(address)) < 0) {
         cerr << "Socket error" << endl;
         return;
     }
-    // Слушаем подключения (до 3 штук)
+    // Слушаем подключения (до 3 штук)(queue)
     if (listen(server_fd, 3) < 0) {
         cerr << "Listen error" << endl;
         return;
@@ -159,17 +159,23 @@ void startServer() {
     while (true) {
         int newSocket;
         sockaddr_in clientAddress; // Структура для хранения адреса клиента
-        socklen_t clientAddressLen = sizeof(clientAddress); // Размер структуры адреса клиента
+        socklen_t clientAddressLen = sizeof(clientAddress); 
 
         newSocket = accept(server_fd, (sockaddr*)&clientAddress, &clientAddressLen);
         if (newSocket < 0) {
             cerr << "Accept client error" << endl;
             return;
         }
+        else{
+            cout<<"Client accepted"<<endl;
+        
+            const char* welcomeMessage = "You are connected to the server!\n";
+            send(newSocket, welcomeMessage, strlen(welcomeMessage), 0);
+        }
 
-        // Создаем новый поток для обработки каждого подключения
+        
         thread clientThread(handleClient, newSocket);
-        clientThread.detach(); // Отсоединяем поток для асинхронного выполнения
+        clientThread.detach(); 
     }
 }
 
